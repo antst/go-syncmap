@@ -12,49 +12,49 @@ import (
 //	K: must be a comparable type (used as map keys)
 //	V: can be any type (used as map values)
 type SyncMap[K comparable, V any] struct {
-	Mu   sync.RWMutex
-	Data map[K]V
+	mu   sync.RWMutex
+	data map[K]V
 }
 
 // New creates and returns a new SyncMap with the specified initial size.
 // It initializes the internal map and mutex for thread-safe operations.
 func New[K comparable, V any](size int) *SyncMap[K, V] {
 	return &SyncMap[K, V]{
-		Mu:   sync.RWMutex{},
-		Data: make(map[K]V, size),
+		mu:   sync.RWMutex{},
+		data: make(map[K]V, size),
 	}
 }
 
 // Store adds or updates a key-value pair in the SyncMap.
 // It acquires a write lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Store(k K, v V) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	m.Data[k] = v
+	m.data[k] = v
 }
 
 // Load retrieves the value associated with the given key from the SyncMap.
 // It acquires a read lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Load(k K) (V, bool) {
-	m.Mu.RLock()
-	defer m.Mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	v, ok := m.Data[k]
+	v, ok := m.data[k]
 	return v, ok
 }
 
 // Remove deletes the value associated with the given key from the SyncMap.
 // It acquires a write lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Remove(k K) bool {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	if _, ok := m.Data[k]; !ok {
+	if _, ok := m.data[k]; !ok {
 		return false
 	}
 
-	delete(m.Data, k)
+	delete(m.data, k)
 
 	return true
 }
@@ -62,12 +62,12 @@ func (m *SyncMap[K, V]) Remove(k K) bool {
 // Map applies a given function to all key-value pairs in the SyncMap and returns a new map with the results.
 // It acquires a read lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Map(mapFn func(k K, v V) V) map[K]V {
-	m.Mu.RLock()
-	defer m.Mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	data := make(map[K]V, len(m.Data))
+	data := make(map[K]V, len(m.data))
 
-	for k, v := range m.Data {
+	for k, v := range m.data {
 		data[k] = mapFn(k, v)
 	}
 
@@ -79,10 +79,10 @@ func (m *SyncMap[K, V]) Map(mapFn func(k K, v V) V) map[K]V {
 func (m *SyncMap[K, V]) Filter(predicateFn func(k K, v V) bool) map[K]V {
 	data := make(map[K]V)
 
-	m.Mu.RLock()
-	defer m.Mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	for k, v := range m.Data {
+	for k, v := range m.data {
 		if predicateFn(k, v) {
 			data[k] = v
 		}
@@ -94,34 +94,34 @@ func (m *SyncMap[K, V]) Filter(predicateFn func(k K, v V) bool) map[K]V {
 // Purge removes all key-value pairs from the SyncMap, effectively clearing its contents.
 // It acquires a write lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Purge() {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	m.Data = make(map[K]V)
+	m.data = make(map[K]V)
 }
 
 // Len returns the number of key-value pairs in the SyncMap.
 // It acquires a read lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Len() int {
-	m.Mu.RLock()
-	defer m.Mu.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
-	return len(m.Data)
+	return len(m.data)
 }
 
 // DoLocked executes a function with exclusive access to the SyncMap.
 // It acquires a write lock before executing the function and releases it afterward.
 func (m *SyncMap[K, V]) DoLocked(f func(LockedMap[K, V])) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	f(&lockedMap[K, V]{m: m})
 }
 
 // DoLockedWithResult executes a function with exclusive access to the SyncMap and returns its result.
 // It acquires a write lock before executing the function and releases it afterward.
 func (m *SyncMap[K, V]) DoLockedWithResult(f func(LockedMap[K, V]) any) any {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return f(&lockedMap[K, V]{m: m})
 }
 
@@ -130,14 +130,14 @@ func (m *SyncMap[K, V]) DoLockedWithResult(f func(LockedMap[K, V]) any) any {
 // The loaded result is true if the value was loaded, false if stored.
 // It acquires a write lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) LoadOrStore(key K, value V) (V, bool) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-	if v, ok := m.Data[key]; ok {
+	if v, ok := m.data[key]; ok {
 		return v, true
 	}
 
-	m.Data[key] = value
+	m.data[key] = value
 	return value, false
 }
 
@@ -145,11 +145,11 @@ func (m *SyncMap[K, V]) LoadOrStore(key K, value V) (V, bool) {
 // The loaded result reports whether the key was present.
 // It acquires a write lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) LoadAndDelete(key K) (V, bool) {
-	m.Mu.Lock()
-	defer m.Mu.Unlock()
-	v, ok := m.Data[key]
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	v, ok := m.data[key]
 	if ok {
-		delete(m.Data, key)
+		delete(m.data, key)
 	}
 	return v, ok
 }
@@ -158,9 +158,9 @@ func (m *SyncMap[K, V]) LoadAndDelete(key K) (V, bool) {
 // If f returns false, range stops the iteration.
 // It acquires a read lock to ensure thread-safe access to the underlying data.
 func (m *SyncMap[K, V]) Range(f func(key K, value V) bool) {
-	m.Mu.RLock()
-	defer m.Mu.RUnlock()
-	for k, v := range m.Data {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for k, v := range m.data {
 		if !f(k, v) {
 			break
 		}

@@ -63,28 +63,28 @@ type lockedMap[K comparable, V any] struct {
 }
 
 func (lm *lockedMap[K, V]) Len() int {
-	return len(lm.m.Data)
+	return len(lm.m.data)
 }
 
 func (lm *lockedMap[K, V]) Load(key K) (V, bool) {
-	v, ok := lm.m.Data[key]
+	v, ok := lm.m.data[key]
 	return v, ok
 }
 
 func (lm *lockedMap[K, V]) Store(key K, value V) {
-	lm.m.Data[key] = value
+	lm.m.data[key] = value
 }
 
 func (lm *lockedMap[K, V]) LoadAndDelete(key K) (V, bool) {
-	v, ok := lm.m.Data[key]
+	v, ok := lm.m.data[key]
 	if ok {
-		delete(lm.m.Data, key)
+		delete(lm.m.data, key)
 	}
 	return v, ok
 }
 
 func (lm *lockedMap[K, V]) Range(f func(key K, value V) bool) {
-	for k, v := range lm.m.Data {
+	for k, v := range lm.m.data {
 		if !f(k, v) {
 			break
 		}
@@ -92,31 +92,31 @@ func (lm *lockedMap[K, V]) Range(f func(key K, value V) bool) {
 }
 
 func (lm *lockedMap[K, V]) Purge() {
-	lm.m.Data = make(map[K]V)
+	lm.m.data = make(map[K]V)
 }
 
 func (lm *lockedMap[K, V]) Remove(k K) bool {
-	if _, ok := lm.m.Data[k]; !ok {
+	if _, ok := lm.m.data[k]; !ok {
 		return false
 	}
-	delete(lm.m.Data, k)
+	delete(lm.m.data, k)
 	return true
 }
 
 func (lm *lockedMap[K, V]) LoadOrStore(key K, value V) (V, bool) {
 
-	if v, ok := lm.m.Data[key]; ok {
+	if v, ok := lm.m.data[key]; ok {
 		return v, true
 	}
 
-	lm.m.Data[key] = value
+	lm.m.data[key] = value
 	return value, false
 }
 
 func (lm *lockedMap[K, V]) Filter(predicateFn func(k K, v V) bool) map[K]V {
 	data := make(map[K]V)
 
-	for k, v := range lm.m.Data {
+	for k, v := range lm.m.data {
 		if predicateFn(k, v) {
 			data[k] = v
 		}
@@ -126,9 +126,9 @@ func (lm *lockedMap[K, V]) Filter(predicateFn func(k K, v V) bool) map[K]V {
 }
 
 func (lm *lockedMap[K, V]) Map(mapFn func(k K, v V) V) map[K]V {
-	data := make(map[K]V, len(lm.m.Data))
+	data := make(map[K]V, len(lm.m.data))
 
-	for k, v := range lm.m.Data {
+	for k, v := range lm.m.data {
 		data[k] = mapFn(k, v)
 	}
 
