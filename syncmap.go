@@ -4,6 +4,12 @@ import (
 	"sync"
 )
 
+type noCopy struct{}
+
+// Lock is a no-op used by -copylocks checker from `go vet`.
+func (*noCopy) Lock()   {}
+func (*noCopy) Unlock() {}
+
 // SyncMap is a generic, thread-safe map implementation.
 // It uses a read-write mutex to ensure safe concurrent access to the underlying map.
 //
@@ -12,6 +18,7 @@ import (
 //	K: must be a comparable type (used as map keys)
 //	V: can be any type (used as map values)
 type SyncMap[K comparable, V any] struct {
+	_    noCopy //nolint:unused // Prevent direct copying of SyncMap by embedding it in another struct.
 	mu   sync.RWMutex
 	data map[K]V
 }
