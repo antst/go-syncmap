@@ -124,11 +124,27 @@ func (m *SyncMap[K, V]) DoLocked(f func(LockedMap[K, V])) {
 	f(&lockedMap[K, V]{m: m})
 }
 
+// DoReadLocked executes a function with exclusive access to the SyncMap.
+// It acquires a read lock before executing the function and releases it afterward.
+func (m *SyncMap[K, V]) DoReadLocked(f func(LockedMap[K, V])) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	f(&lockedMap[K, V]{m: m})
+}
+
 // DoLockedWithResult executes a function with exclusive access to the SyncMap and returns its result.
 // It acquires a write lock before executing the function and releases it afterward.
 func (m *SyncMap[K, V]) DoLockedWithResult(f func(LockedMap[K, V]) any) any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	return f(&lockedMap[K, V]{m: m})
+}
+
+// DoReadLockedWithResult executes a function with exclusive access to the SyncMap and returns its result.
+// It acquires a read lock before executing the function and releases it afterward.
+func (m *SyncMap[K, V]) DoReadLockedWithResult(f func(LockedMap[K, V]) any) any {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return f(&lockedMap[K, V]{m: m})
 }
 
